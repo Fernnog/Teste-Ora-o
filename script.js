@@ -4,13 +4,13 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 
 // Firebase configuration (replace with your actual config)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
+  apiKey: "AIzaSyDUbWB7F_4-tQ8K799wylf36IayGWgBuMU",
+  authDomain: "diario-de-oracao-268d3.firebaseapp.com",
+  projectId: "diario-de-oracao-268d3",
+  storageBucket: "diario-de-oracao-268d3.firebasestorage.app",
+  messagingSenderId: "561592831701",
+  appId: "1:561592831701:web:2a682317486837fd795c5c",
+  measurementId: "G-15YHNK7H2B"
 };
 
 // Initialize Firebase
