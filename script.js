@@ -1,16 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, getDoc, increment } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDUbWB7F_4-tQ8K799wylf36IayGWgBuMU",
-  authDomain: "diario-de-oracao-268d3.firebaseapp.com",
-  projectId: "diario-de-oracao-268d3",
-  storageBucket: "diario-de-oracao-268d3.firebasestorage.app",
-  messagingSenderId: "561592831701",
-  appId: "1:561592831701:web:2a682317486837fd795c5c",
-  measurementId: "G-15YHNK7H2B"
+    apiKey: "AIzaSyDUbWB7F_4-tQ8K799wylf36IayGWgBuMU",
+    authDomain: "diario-de-oracao-268d3.firebaseapp.com",
+    projectId: "diario-de-oracao-268d3",
+    storageBucket: "diario-de-oracao-268d3.firebasestorage.app",
+    messagingSenderId: "561592831701",
+    appId: "1:561592831701:web:2a682317486837fd795c5c",
+    measurementId: "G-15YHNK7H2B"
 };
 
 // Initialize Firebase
@@ -32,6 +32,8 @@ let currentSearchTermMain = '';
 let currentSearchTermArchived = '';
 let currentSearchTermResolved = '';
 let showDeadlineOnly = false;
+
+// ==== FIM SEÇÃO - VARIÁVEIS GLOBAIS ====
 
 // ==== FUNÇÕES UTILITÁRIAS ====
 function formatDateToISO(date) {
@@ -69,6 +71,8 @@ function generateUniqueId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// ==== FIM SEÇÃO - FUNÇÕES UTILITÁRIAS ====
+
 // ==== FUNÇÕES AUXILIARES ====
 function rehydrateTargets(targets) {
     return targets.map(target => {
@@ -79,6 +83,8 @@ function rehydrateTargets(targets) {
         return target;
     });
 }
+
+// ==== FIM SEÇÃO - FUNÇÕES AUXILIARES ====
 
 // ==== FUNÇÃO PARA ATUALIZAR A UI DE AUTENTICAÇÃO ====
 function updateAuthUI(user) {
@@ -113,6 +119,7 @@ function updateAuthUI(user) {
     }
 }
 
+// ==== FIM SEÇÃO - FUNÇÃO PARA ATUALIZAR A UI DE AUTENTICAÇÃO ====
 
 // ==== INICIALIZAÇÃO E LOGIN/AUTENTICAÇÃO ====
 async function loadData(user) {
@@ -182,7 +189,12 @@ window.onload = () => {
     document.getElementById('searchResolved').addEventListener('input', handleSearchResolved);
     document.getElementById('showDeadlineOnly').addEventListener('change', handleDeadlineFilterChange);
     document.getElementById('showExpiredOnlyMain').addEventListener('change', handleExpiredOnlyMainChange);
+
+    // ADICIONAR O EVENT LISTENER DO BOTÃO DE RELATÓRIO AQUI
+    document.getElementById("generateReportButton").addEventListener('click', generateReport);
 };
+
+// ==== FIM SEÇÃO - INICIALIZAÇÃO E LOGIN/AUTENTICAÇÃO ====
 
 // ==== FUNÇÕES DE RENDERIZAÇÃO ====
 function renderTargets() {
@@ -434,6 +446,8 @@ function handleExpiredOnlyMainChange() {
     renderTargets();
 }
 
+// ==== FIM SEÇÃO - FUNÇÕES DE RENDERIZAÇÃO ====
+
 // ==== MANIPULAÇÃO DE DADOS ====
 document.getElementById('hasDeadline').addEventListener('change', function() {
     document.getElementById('deadlineContainer').style.display = this.checked ? 'block' : 'none';
@@ -442,7 +456,17 @@ document.getElementById('hasDeadline').addEventListener('change', function() {
 document.getElementById("prayerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const hasDeadline = document.getElementById("hasDeadline").checked;
-    const deadlineDate = hasDeadline ? formatDateToISO(new Date(document.getElementById("deadlineDate").value + "T00:00:00")) : null;
+    const deadlineDate = hasDeadline
+        ? formatDateToISO(new Date(document.getElementById("deadlineDate").value + "T00:00:00"))
+        : null;
+
+    // Obtém o ID do usuário atual
+    const userId = auth.currentUser ? auth.currentUser.uid : null;
+    if (!userId) {
+        alert("Usuário não autenticado.");
+        return; // Impede a continuação se não houver usuário
+    }
+
     const newTarget = {
         title: document.getElementById("title").value,
         details: document.getElementById("details").value,
@@ -450,26 +474,24 @@ document.getElementById("prayerForm").addEventListener("submit", async (e) => {
         resolved: false,
         observations: [],
         hasDeadline: hasDeadline,
-        deadlineDate: deadlineDate
+        deadlineDate: deadlineDate,
+        userId: userId, // Adiciona o userId ao novo alvo
     };
+
     try {
-        const user = auth.currentUser;
-        if (user) {
-            const docRef = doc(collection(db, "users", user.uid, "prayerTargets")); // Firestore auto-generates ID
-            await setDoc(docRef, newTarget);
-            await fetchPrayerTargets(user.uid); // Refresh targets from Firestore
-            currentPage = 1;
-            renderTargets();
-            document.getElementById("prayerForm").reset();
-            refreshDailyTargets();
-        } else {
-            alert("Usuário não autenticado.");
-        }
+        const docRef = doc(collection(db, "users", userId, "prayerTargets")); // Firestore auto-generates ID
+        await setDoc(docRef, newTarget);
+        await fetchPrayerTargets(userId); // Refresh targets from Firestore
+        currentPage = 1;
+        renderTargets();
+        document.getElementById("prayerForm").reset();
+        refreshDailyTargets();
     } catch (error) {
         console.error("Erro ao adicionar alvo no Firestore: ", error);
         alert("Erro ao adicionar alvo. Verifique o console.");
     }
 });
+
 
 
 async function markAsResolved(targetId) {
@@ -480,8 +502,9 @@ async function markAsResolved(targetId) {
             const targetDoc = await getDoc(targetRef); // Use getDoc here
 
              if (targetDoc.exists()) {
+                //Não precisa do userId aqui, já estamos na coleção do usuário correto
                 const resolvedTargetData = {...targetDoc.data(), resolved: true, archivedDate: formatDateToISO(new Date())};
-                const archivedRef = doc(collection(db, "users", user.uid, "archivedTargets"));
+                const archivedRef = doc(collection(db, "users", user.uid, "archivedTargets")); // Usa o UID do usuário
                 await setDoc(archivedRef, resolvedTargetData); // Save to archivedTargets
 
                 await deleteDoc(targetRef); // Delete from prayerTargets
@@ -515,8 +538,9 @@ async function archiveTarget(targetId) {
             const targetDoc = await getDoc(targetRef); // Use getDoc here
 
             if (targetDoc.exists()) {
+                //Não precisa do userId aqui, já estamos na coleção do usuário correto
                  const archivedTargetData = {...targetDoc.data(), archivedDate: formatDateToISO(new Date())};
-                const archivedRef = doc(collection(db, "users", user.uid, "archivedTargets"));
+                const archivedRef = doc(collection(db, "users", user.uid, "archivedTargets"));// Usa o UID do usuário
                 await setDoc(archivedRef, archivedTargetData); // Save to archivedTargets
 
                 await deleteDoc(targetRef); // Delete from prayerTargets
@@ -544,7 +568,7 @@ async function deleteArchivedTarget(targetId) {
         try {
             const user = auth.currentUser;
             if (user) {
-                const targetRef = doc(db, "users", user.uid, "archivedTargets", targetId);
+                const targetRef = doc(db, "users", user.uid, "archivedTargets", targetId); //Usa UID do usuário
                 await deleteDoc(targetRef);
                 await fetchArchivedTargets(user.uid);
                 resolvedTargets = archivedTargets.filter(target => target.resolved);
@@ -560,8 +584,9 @@ async function deleteArchivedTarget(targetId) {
     }
 }
 
+// ==== FIM SEÇÃO - MANIPULAÇÃO DE DADOS ====
 
-// ==== EVENT LISTENERS ====
+// ==== INÍCIO SEÇÃO - EVENT LISTENERS ====
 // Autenticação
 document.addEventListener('DOMContentLoaded', () => {
     const btnRegister = document.getElementById('btnRegister');
@@ -717,6 +742,12 @@ generateResolvedViewButton.addEventListener("click", () => {
 });
 
 cancelDateRangeButton.addEventListener("click", () => { dateRangeModal.style.display = "none"; });
+
+// ==== BOTÃO "RELATÓRIO DE PERSEVERANÇA" - EVENT LISTENER ADICIONADO ====
+document.getElementById("viewReportButton").addEventListener('click', () => {
+    window.location.href = 'orei.html'; // Redireciona para a página de relatório
+});
+// ==== FIM SEÇÃO - EVENT LISTENERS ====
 
 // ==== GERAÇÃO DE VISUALIZAÇÃO (HTML) ====
 function generateViewHTML() {
@@ -993,12 +1024,48 @@ function addPrayButtonFunctionality(dailyDiv, targetIndex) {
     const prayButton = document.createElement("button");
     prayButton.textContent = "Orei!";
     prayButton.classList.add("pray-button");
-    prayButton.onclick = () => {
-        dailyDiv.remove();
-        checkIfAllPrayersDone();
+    prayButton.onclick = async () => {
+        const targetId = dailyDiv.dataset.targetId;
+        const userId = auth.currentUser ? auth.currentUser.uid : null; // Obtém o ID do usuário
+
+        const db = getFirestore(app);
+        const clickCountsRef = doc(db, "prayerClickCounts", targetId); // Referência ao documento do alvo
+
+        try {
+            const docSnap = await getDoc(clickCountsRef);
+
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const year = now.getFullYear().toString();
+
+            // Dados a serem atualizados/criados, incluindo o userId
+            const updateData = {
+                targetId: targetId,
+                userId: userId, // Adiciona o userId
+                totalClicks: increment(1),
+                [`monthlyClicks.${yearMonth}`]: increment(1),  // Atualiza o campo específico do mês
+                [`yearlyClicks.${year}`]: increment(1)  //Atualiza o campo específico do Ano
+            };
+
+
+            if (docSnap.exists()) {
+                // Atualizar documento existente
+                await updateDoc(clickCountsRef, updateData);
+            } else {
+                // Criar novo documento com os dados iniciais
+                await setDoc(clickCountsRef, updateData);
+            }
+
+            dailyDiv.remove();
+            checkIfAllPrayersDone();
+        } catch (error) {
+            console.error("Erro ao registrar clique:", error);
+            alert("Erro ao registrar clique. Verifique o console.");
+        }
     };
     dailyDiv.insertBefore(prayButton, dailyDiv.firstChild);
 }
+
 
 function checkIfAllPrayersDone() {
     const dailyTargets = document.getElementById("dailyTargets");
@@ -1017,6 +1084,71 @@ document.getElementById('closePopup').addEventListener('click', () => {
     document.getElementById('completionPopup').style.display = 'none';
 });
 // ==== FIM SEÇÃO - FUNCIONALIDADE DO BOTÃO "OREI!" ====
+
+// ==== INÍCIO SEÇAO - GERAR RELATÓRIO ====
+
+async function generateReport() {
+    const db = getFirestore(app);
+	const userId = auth.currentUser ? auth.currentUser.uid : null; //Obtem o id do usuário logado
+     if (!userId) {
+        alert("Usuário não autenticado. Relatório não pode ser gerado.");
+        return;
+    }
+    const clickCountsRef = collection(db, "prayerClickCounts");
+    const q = query(clickCountsRef, where("userId", "==", userId)); //Filtra por userId
+    const snapshot = await getDocs(q); //Usa a query 'q'
+
+
+    if (snapshot.empty) {
+        alert("Nenhum dado de clique encontrado.");
+        return;
+    }
+
+    let report = "Relatório de Cliques no Botão 'Orei!':\n\n";
+
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const targetId = doc.id; // ou data.targetId, dependendo da sua escolha
+        const target = prayerTargets.find(t => t.id === targetId);  // Busca o alvo na lista local
+        const title = target ? target.title : `Alvo ID: ${targetId}`; // Título ou ID
+
+        report += `Alvo: ${title}\n`;
+        report += `  Total de cliques: ${data.totalClicks}\n`;
+        report += `  Cliques por Mês:\n`;
+        for (const yearMonth in data.monthlyClicks) {
+            report += `    ${yearMonth}: ${data.monthlyClicks[yearMonth]}\n`;
+        }
+
+            report += `  Cliques por Ano:\n`;
+        for (const year in data.yearlyClicks) {
+            report += `    ${year}: ${data.yearlyClicks[year]}\n`;
+        }
+
+        report += "\n";
+    });
+
+
+    displayReportModal(report); //Chama a função do modal
+}
+
+function displayReportModal(reportText){
+    const modal = document.createElement('div');
+    modal.classList.add('modal');
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close-button" id="closeReportModal">×</span>
+            <h2>Relatório de Cliques</h2>
+            <pre>${reportText}</pre>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+
+    document.getElementById('closeReportModal').addEventListener('click', () => {
+        modal.remove();
+    });
+}
+// ==== FIM SEÇAO - GERAR RELATÓRIO ====
 
 // Atualizar os alvos diários
 function refreshDailyTargets() {
@@ -1043,6 +1175,7 @@ function refreshDailyTargets() {
     selectedTargets.forEach((target, index) => {
         const dailyDiv = document.createElement("div");
         dailyDiv.classList.add("target");
+        dailyDiv.dataset.targetId = target.id; // ADICIONA O DATA-TARGET-ID
 
              // Construindo o HTML para incluir título, detalhes e tempo decorrido, sem a tag de prazo no título
         const deadlineTag = target.hasDeadline ? `<span class="deadline-tag ${isDateExpired(target.deadlineDate) ? 'expired' : ''}">Prazo: ${formatDateForDisplay(target.deadlineDate)}</span>` : '';
@@ -1132,3 +1265,5 @@ function checkExpiredDeadlines() {
         alert('Os seguintes alvos estão com prazo de validade vencido:\n' + expiredTargets.map(target => `- ${target.title}\n`).join(''));
     }
 }
+
+
