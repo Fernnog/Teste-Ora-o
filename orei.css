@@ -49,3 +49,32 @@ body {
     margin-right: 15px;
     cursor: pointer;
 }
+
+/* Estilos para a paginação */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px; /* Espaço entre a lista e a paginação */
+}
+
+.pagination a {
+    padding: 8px 12px;
+    margin: 0 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    background-color: #fff;
+    transition: background-color 0.3s ease;
+}
+
+.pagination a:hover {
+    background-color: #f0f0f0;
+}
+
+.pagination a.active {
+    background-color: #f9a825; /* Cor do seu tema */
+    color: white;
+    border-color: #f9a825;
+}
