@@ -3,7 +3,6 @@ import { getAnalytics } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
 import { getFirestore, collection, doc, getDocs, query, where, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-// Importe firebaseConfig do seu script principal (script.js) ou defina aqui novamente
 const firebaseConfig = {
     apiKey: "AIzaSyDUbWB7F_4-tQ8K799wylf36IayGWgBuMU",
     authDomain: "diario-de-oracao-268d3.firebaseapp.com",
@@ -14,7 +13,6 @@ const firebaseConfig = {
     measurementId: "G-15YHNK7H2B"
 };
 
-
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
@@ -24,10 +22,9 @@ let prayerTargets = [];
 let archivedTargets = [];
 let clickCountsData = {};
 let currentUserId = null;
-let allTargets = []; // Para armazenar todos os alvos (ativos e arquivados)
-let filteredTargets = []; // Para alvos filtrados pela busca
+let allTargets = [];
+let filteredTargets = [];
 let currentSearchTermReport = '';
-
 
 async function loadReportData(userId) {
     currentUserId = userId;
@@ -43,7 +40,7 @@ async function fetchPrayerTargets(userId) {
     const targetsRef = collection(db, "users", userId, "prayerTargets");
     const targetsSnapshot = await getDocs(targetsRef);
     targetsSnapshot.forEach((doc) => {
-        prayerTargets.push({...doc.data(), id: doc.id, status: 'Ativo'}); // Adiciona status
+        prayerTargets.push({ ...doc.data(), id: doc.id, status: 'Ativo' });
     });
 }
 
@@ -52,10 +49,9 @@ async function fetchArchivedTargets(userId) {
     const archivedRef = collection(db, "users", userId, "archivedTargets");
     const archivedSnapshot = await getDocs(archivedRef);
     archivedSnapshot.forEach((doc) => {
-        archivedTargets.push({...doc.data(), id: doc.id, status: doc.data().resolved ? 'Respondido' : 'Arquivado'}); // Adiciona status
+        archivedTargets.push({ ...doc.data(), id: doc.id, status: doc.data().resolved ? 'Respondido' : 'Arquivado' });
     });
 }
-
 
 async function fetchClickCounts(userId) {
     clickCountsData = {};
@@ -68,19 +64,28 @@ async function fetchClickCounts(userId) {
 }
 
 function mergeTargetsAndClicks() {
-    allTargets = [...prayerTargets, ...archivedTargets]; // Combina alvos ativos e arquivados
-    filteredTargets = allTargets; // Inicialmente, todos os alvos são exibidos
+    allTargets = [...prayerTargets, ...archivedTargets];
+    filteredTargets = allTargets;
 }
-
 
 function renderReport() {
     const reportList = document.getElementById('reportList');
-    reportList.innerHTML = ''; // Limpa a lista antes de renderizar
+    reportList.innerHTML = '';
 
-    // Filtra os alvos com base no termo de pesquisa
     const searchTerm = currentSearchTermReport.toLowerCase();
-    const targetsToDisplay = filteredTargets.filter(target => {
-        return target.title.toLowerCase().includes(searchTerm) || target.details.toLowerCase().includes(searchTerm);
+    const filterAtivo = document.getElementById('filterAtivo').checked;
+    const filterArquivado = document.getElementById('filterArquivado').checked;
+    const filterRespondido = document.getElementById('filterRespondido').checked;
+
+    const targetsToDisplay = allTargets.filter(target => {
+        const textMatch = target.title.toLowerCase().includes(searchTerm) || target.details.toLowerCase().includes(searchTerm);
+
+        let statusMatch = false;
+        if (filterAtivo && target.status === 'Ativo') statusMatch = true;
+        if (filterArquivado && target.status === 'Arquivado') statusMatch = true;
+        if (filterRespondido && target.status === 'Respondido') statusMatch = true;
+
+        return textMatch && statusMatch;
     });
 
     if (targetsToDisplay.length === 0) {
@@ -88,59 +93,56 @@ function renderReport() {
         return;
     }
 
-
     targetsToDisplay.forEach(target => {
-        const targetClickData = clickCountsData[target.id] || { totalClicks: 0 }; // Obtém dados de cliques ou usa 0 se não houver
+        const targetClickData = clickCountsData[target.id] || { totalClicks: 0, monthlyClicks: {}, yearlyClicks: {} };
+        const totalClicks = targetClickData.totalClicks;
+
+        const now = new Date();
+        const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const currentYear = now.getFullYear().toString();
+
+        const monthlyClicks = targetClickData.monthlyClicks[currentYearMonth] || 0;
+        const yearlyClicks = targetClickData.yearlyClicks[currentYear] || 0;
+
         const reportItemDiv = document.createElement('div');
         reportItemDiv.classList.add('report-item');
         reportItemDiv.innerHTML = `
             <h3>${target.title}</h3>
             <p><strong>Status:</strong> ${target.status}</p>
-            <p><strong>Total de Orações:</strong> ${targetClickData.totalClicks}</p>
-            <p><strong>Cliques Mensais:</strong> ${formatMonthlyClicks(targetClickData.monthlyClicks)}</p>
-            <p><strong>Cliques Anuais:</strong> ${formatYearlyClicks(targetClickData.yearlyClicks)}</p>
+            <p><strong>Total de Orações:</strong> ${totalClicks}</p>
+            <p><strong>Orações no Mês Corrente:</strong> ${monthlyClicks}</p>
+            <p><strong>Orações no Ano Corrente:</strong> ${yearlyClicks}</p>
         `;
         reportList.appendChild(reportItemDiv);
     });
 }
 
-function formatMonthlyClicks(monthlyClicks) {
-    if (!monthlyClicks) return 'N/A';
-    return Object.entries(monthlyClicks)
-                 .map(([monthYear, count]) => `${monthYear}: ${count}`)
-                 .join(', ');
-}
-
-function formatYearlyClicks(yearlyClicks) {
-     if (!yearlyClicks) return 'N/A';
-    return Object.entries(yearlyClicks)
-                 .map(([year, count]) => `${year}: ${count}`)
-                 .join(', ');
-}
 
 document.getElementById('searchReport').addEventListener('input', (event) => {
     currentSearchTermReport = event.target.value;
     renderReport();
 });
 
-// ==== INÍCIO SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
+// Event listeners para os filtros
+document.getElementById('filterAtivo').addEventListener('change', renderReport);
+document.getElementById('filterArquivado').addEventListener('change', renderReport);
+document.getElementById('filterRespondido').addEventListener('change', renderReport);
+
 document.getElementById('backToMainButton').addEventListener('click', () => {
-    window.location.href = 'index.html'; // Volta para a página principal
+    window.location.href = 'index.html';
 });
 
 document.getElementById('viewAllTargetsButton').addEventListener('click', () => {
-    window.location.href = 'index.html#mainPanel'; // Vai para a seção de alvos principais
+    window.location.href = 'index.html#mainPanel';
 });
 
 document.getElementById('viewArchivedButton').addEventListener('click', () => {
-    window.location.href = 'index.html#archivedPanel'; // Vai para a seção de arquivados
+    window.location.href = 'index.html#archivedPanel';
 });
 
 document.getElementById('viewResolvedButton').addEventListener('click', () => {
-    window.location.href = 'index.html#resolvedPanel'; // Vai para a seção de resolvidos
+    window.location.href = 'index.html#resolvedPanel';
 });
-// ==== FIM SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
-
 
 window.onload = () => {
     onAuthStateChanged(auth, (user) => {
