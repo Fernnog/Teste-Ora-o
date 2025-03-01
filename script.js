@@ -745,7 +745,7 @@ cancelDateRangeButton.addEventListener("click", () => { dateRangeModal.style.dis
 
 // ==== BOTÃO "RELATÓRIO DE PERSEVERANÇA" - EVENT LISTENER ADICIONADO ====
 document.getElementById("viewReportButton").addEventListener('click', () => {
-    window.location.href = 'orei/orei.html'; // Redireciona para a página de relatório
+    window.location.href = 'orei.html'; // Redireciona para a página de relatório
 });
 // ==== FIM SEÇÃO - EVENT LISTENERS ====
 
