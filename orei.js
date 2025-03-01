@@ -22,8 +22,8 @@ let prayerTargets = [];
 let archivedTargets = [];
 let clickCountsData = {};
 let currentUserId = null;
-let allTargets = [];
-let filteredTargets = [];
+let allTargets = [];  // Todos os alvos (ativos e arquivados/respondidos)
+let filteredTargets = []; // Alvos filtrados pela pesquisa e checkboxes
 let currentSearchTermReport = '';
 
 async function loadReportData(userId) {
@@ -31,8 +31,8 @@ async function loadReportData(userId) {
     await fetchPrayerTargets(userId);
     await fetchArchivedTargets(userId);
     await fetchClickCounts(userId);
-    mergeTargetsAndClicks();
-    renderReport();
+    mergeTargetsAndClicks(); // Combina os alvos
+    renderReport(); // Renderiza o relatório
 }
 
 async function fetchPrayerTargets(userId) {
@@ -63,9 +63,9 @@ async function fetchClickCounts(userId) {
     });
 }
 
+// Combina os alvos ativos e arquivados em allTargets
 function mergeTargetsAndClicks() {
     allTargets = [...prayerTargets, ...archivedTargets];
-    filteredTargets = allTargets;
 }
 
 function renderReport() {
@@ -77,32 +77,41 @@ function renderReport() {
     const filterArquivado = document.getElementById('filterArquivado').checked;
     const filterRespondido = document.getElementById('filterRespondido').checked;
 
-    const targetsToDisplay = allTargets.filter(target => {
-        const textMatch = target.title.toLowerCase().includes(searchTerm) || target.details.toLowerCase().includes(searchTerm);
+    // 1. FILTRAGEM:
+    filteredTargets = allTargets.filter(target => {
+        // Filtro de texto
+        const textMatch = target.title.toLowerCase().includes(searchTerm) ||
+                           target.details.toLowerCase().includes(searchTerm);
 
-        let statusMatch = false;
-        if (filterAtivo && target.status === 'Ativo') statusMatch = true;
-        if (filterArquivado && target.status === 'Arquivado') statusMatch = true;
-        if (filterRespondido && target.status === 'Respondido') statusMatch = true;
+        // Filtro de status (agora usando um array para simplificar)
+        const selectedStatuses = [];
+        if (filterAtivo) selectedStatuses.push('Ativo');
+        if (filterArquivado) selectedStatuses.push('Arquivado');
+        if (filterRespondido) selectedStatuses.push('Respondido');
+        const statusMatch = selectedStatuses.includes(target.status);
+
 
         return textMatch && statusMatch;
     });
 
-    if (targetsToDisplay.length === 0) {
+
+    // 2. EXIBIÇÃO:
+    if (filteredTargets.length === 0) {
         reportList.innerHTML = '<p>Nenhum alvo encontrado.</p>';
         return;
     }
 
-    targetsToDisplay.forEach(target => {
+    filteredTargets.forEach(target => {
         const targetClickData = clickCountsData[target.id] || { totalClicks: 0, monthlyClicks: {}, yearlyClicks: {} };
-        const totalClicks = targetClickData.totalClicks;
+        const totalClicks = targetClickData.totalClicks || 0; // Garante 0 se for undefined
 
         const now = new Date();
         const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const currentYear = now.getFullYear().toString();
 
-        const monthlyClicks = targetClickData.monthlyClicks[currentYearMonth] || 0;
-        const yearlyClicks = targetClickData.yearlyClicks[currentYear] || 0;
+        const monthlyClicks = targetClickData.monthlyClicks?.[currentYearMonth] || 0;  // Acesso seguro
+        const yearlyClicks = targetClickData.yearlyClicks?.[currentYear] || 0; // Acesso seguro
+
 
         const reportItemDiv = document.createElement('div');
         reportItemDiv.classList.add('report-item');
@@ -118,16 +127,18 @@ function renderReport() {
 }
 
 
+// Event listener para a pesquisa
 document.getElementById('searchReport').addEventListener('input', (event) => {
     currentSearchTermReport = event.target.value;
-    renderReport();
+    renderReport(); // Chama renderReport para refazer a filtragem
 });
 
-// Event listeners para os filtros
+// Event listeners para os checkboxes de filtro
 document.getElementById('filterAtivo').addEventListener('change', renderReport);
 document.getElementById('filterArquivado').addEventListener('change', renderReport);
 document.getElementById('filterRespondido').addEventListener('change', renderReport);
 
+// Event listeners para a navegação (mantidos do original)
 document.getElementById('backToMainButton').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
