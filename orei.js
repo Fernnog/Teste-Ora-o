@@ -23,7 +23,7 @@ let archivedTargets = [];
 let clickCountsData = {};
 let currentUserId = null;
 let allTargets = [];
-let filteredTargets = [];  // Alvos filtrados
+let filteredTargets = [];
 let currentSearchTermReport = '';
 
 async function loadReportData(userId) {
@@ -67,7 +67,6 @@ function mergeTargetsAndClicks() {
     allTargets = [...prayerTargets, ...archivedTargets];
 }
 
-
 function renderReport() {
     const reportList = document.getElementById('reportList');
     reportList.innerHTML = '';
@@ -77,38 +76,32 @@ function renderReport() {
     const filterArquivado = document.getElementById('filterArquivado').checked;
     const filterRespondido = document.getElementById('filterRespondido').checked;
 
-    // 1. FILTRAGEM (melhorada):
     filteredTargets = allTargets.filter(target => {
-        // Filtro de texto (mantido)
         const textMatch = target.title.toLowerCase().includes(searchTerm) ||
                            target.details.toLowerCase().includes(searchTerm);
-
-        // Filtro de status (mais eficiente)
         const statusMatches = (filterAtivo && target.status === 'Ativo') ||
                               (filterArquivado && target.status === 'Arquivado') ||
                               (filterRespondido && target.status === 'Respondido');
-
         return textMatch && statusMatches;
     });
 
-    // 2. EXIBIÇÃO (com tratamento de dados faltantes):
     if (filteredTargets.length === 0) {
         reportList.innerHTML = '<p>Nenhum alvo encontrado.</p>';
         return;
     }
 
     filteredTargets.forEach(target => {
-        // Obtenção dos dados de clique (com valores padrão):
         const targetClickData = clickCountsData[target.id] || { totalClicks: 0, monthlyClicks: {}, yearlyClicks: {} };
-        const totalClicks = targetClickData.totalClicks || 0; // Total, com valor padrão 0
+        const totalClicks = targetClickData.totalClicks || 0;
 
         const now = new Date();
         const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const currentYear = now.getFullYear().toString();
 
-        // Acesso seguro aos dados mensais e anuais (com valores padrão):
-        const monthlyClicks = (targetClickData.monthlyClicks && targetClickData.monthlyClicks[currentYearMonth]) || 0;
-        const yearlyClicks = (targetClickData.yearlyClicks && targetClickData.yearlyClicks[currentYear]) || 0;
+        // Acesso CORRETO e SEGURO aos dados mensais e anuais:
+        const monthlyClicks = targetClickData.monthlyClicks?.[currentYearMonth] || 0;
+        const yearlyClicks = targetClickData.yearlyClicks?.[currentYear] || 0;
+
 
         const reportItemDiv = document.createElement('div');
         reportItemDiv.classList.add('report-item');
@@ -123,9 +116,6 @@ function renderReport() {
     });
 }
 
-
-
-// Event listeners (mantidos e corrigidos)
 document.getElementById('searchReport').addEventListener('input', (event) => {
     currentSearchTermReport = event.target.value;
     renderReport();
