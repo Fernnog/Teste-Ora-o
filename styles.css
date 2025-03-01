@@ -47,7 +47,7 @@ body {
 
 .main-title {
     text-align: center; /* Centraliza o título h1 */
-    margin-bottom: 20px; /* Ajusta o espaço entre o título e o restante */
+    margin-bottom: 10px; /* Ajusta o espaço entre o título e o restante */
 }
 
 h1 {
@@ -655,6 +655,89 @@ input[type="date"] {
     margin-top: 10px; /* Espaço acima dos botões */
 }
 /* ==== FIM SEÇÃO - ESTILOS CENTRALIZAR BOTÕES ==== */
+
+/* ==== INÍCIO SEÇÃO - ESTILOS DA SEÇÃO DE AUTENTICAÇÃO ==== */
+
+/* Container principal da seção de autenticação */
+.auth-section {
+    display: flex;
+    flex-direction: column; /* Organiza os elementos verticalmente */
+    align-items: center; /* Centraliza os elementos horizontalmente */
+    margin-bottom: 20px;
+    text-align: center; /* Centraliza o texto dentro dos elementos */
+}
+
+/* Estilos para os inputs de email e senha */
+.auth-section input[type="email"],
+.auth-section input[type="password"] {
+    margin: 5px 0; /* Espaço acima e abaixo de cada input */
+    padding: 10px;
+    width: 80%; /* Largura responsiva */
+    max-width: 300px; /* Largura máxima para evitar inputs muito largos */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Container para os botões de Registrar e Entrar */
+.auth-buttons {
+    display: flex;
+    gap: 10px; /* Espaço entre os botões */
+    margin-top: 10px;
+    justify-content: center; /* Centraliza os botões no container */
+
+}
+
+/* Estilos para os botões de autenticação (Registrar, Entrar) */
+.auth-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 15px; /* Bordas mais arredondadas */
+    background-color: #f9c784; /* Tom mais claro, da paleta */
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 16px; /* Aumentei um pouco o tamanho da fonte */
+    font-weight: bold; /* Deixei em negrito para destacar */
+}
+
+.auth-btn:hover {
+    background-color: #f2b366; /* Tom ligeiramente mais escuro no hover */
+}
+
+/* Container para o link "Esqueci minha senha" */
+.forgot-password-container {
+    margin-top: 10px;
+}
+
+/* Estilos para o link "Esqueci minha senha" */
+.forgot-password-btn {
+    background: none;
+    border: none;
+    color: #654321; /* Cor do texto (marrom escuro) */
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 14px;
+}
+
+.forgot-password-btn:hover {
+    text-decoration: none; /* Remove o sublinhado no hover */
+}
+
+/* Container para o status de autenticação e botão Sair */
+.auth-status-container {
+    display: flex;
+    flex-direction: column; /* Organiza verticalmente */
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px; /* Espaço entre status e botão */
+}
+
+.auth-status {
+    font-size: 16px;
+}
+/* ==== FIM SEÇÃO - ESTILOS DA SEÇÃO DE AUTENTICAÇÃO ==== */
+
 /* ==== INÍCIO SEÇÃO - RESPONSIVIDADE ==== */
 /* Media query para telas menores */
 @media (max-width: 768px) {
