@@ -1049,12 +1049,22 @@ function addPrayButtonFunctionality(dailyDiv, targetIndex) {
 
 
             if (docSnap.exists()) {
-                // Atualizar documento existente.  Usar updateDoc com um objeto
-                await updateDoc(clickCountsRef, updateData);
-
+                // Documento existe: usar updateDoc com NOTAÇÃO DE PONTO
+                await updateDoc(clickCountsRef, {
+                    totalClicks: increment(1),
+                    [`monthlyClicks.${yearMonth}`]: increment(1), // CORRETO!
+                    [`yearlyClicks.${year}`]: increment(1),     // CORRETO!
+                    userId: userId // SEMPRE atualiza o userId (boa prática)
+                });
             } else {
-                // Criar novo documento
-                await setDoc(clickCountsRef, updateData);
+                // Documento não existe: usar setDoc com merge: true
+                await setDoc(clickCountsRef, {
+                    targetId: targetId,
+                    userId: userId,
+                    totalClicks: increment(1),
+                    monthlyClicks: { [yearMonth]: 1 }, // Cria com valor inicial 1
+                    yearlyClicks: { [year]: 1 }       // Cria com valor inicial 1
+                }, { merge: true }); // IMPORTANTE: merge: true
             }
 
             dailyDiv.remove();
@@ -1148,6 +1158,7 @@ function displayReportModal(reportText){
         modal.remove();
     });
 }
+
 // ==== FIM SEÇAO - GERAR RELATÓRIO ====
 
 // Atualizar os alvos diários
