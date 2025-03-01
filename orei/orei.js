@@ -1,3 +1,4 @@
+--- START OF FILE orei.js ---
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
 import { getAnalytics } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
@@ -123,23 +124,23 @@ document.getElementById('searchReport').addEventListener('input', (event) => {
     renderReport();
 });
 
-// ==== INÍCIO SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
+// ==== INÍCIO SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) - PATHS UPDATED for subfolder ====
 document.getElementById('backToMainButton').addEventListener('click', () => {
-    window.location.href = 'index.html'; // Volta para a página principal
+    window.location.href = '../index.html'; // Volta para a página principal - go up one level
 });
 
 document.getElementById('viewAllTargetsButton').addEventListener('click', () => {
-    window.location.href = 'index.html#mainPanel'; // Vai para a seção de alvos principais
+    window.location.href = '../index.html#mainPanel'; // Vai para a seção de alvos principais - go up one level
 });
 
 document.getElementById('viewArchivedButton').addEventListener('click', () => {
-    window.location.href = 'index.html#archivedPanel'; // Vai para a seção de arquivados
+    window.location.href = '../index.html#archivedPanel'; // Vai para a seção de arquivados - go up one level
 });
 
 document.getElementById('viewResolvedButton').addEventListener('click', () => {
-    window.location.href = 'index.html#resolvedPanel'; // Vai para a seção de resolvidos
+    window.location.href = '../index.html#resolvedPanel'; // Vai para a seção de resolvidos - go up one level
 });
-// ==== FIM SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
+// ==== FIM SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) - PATHS UPDATED for subfolder ====
 
 
 window.onload = () => {
@@ -148,7 +149,8 @@ window.onload = () => {
             loadReportData(user.uid);
         } else {
             alert("Usuário não autenticado. Redirecionando para a página principal.");
-            window.location.href = 'index.html';
+            window.location.href = '../index.html'; // Go up one level for redirect
         }
     });
 };
+--- END OF FILE orei.js ---
