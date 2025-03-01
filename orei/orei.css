@@ -1,0 +1,42 @@
+/* orei.css - Estilos específicos para a página de relatório */
+.report-container {
+    padding: 20px;
+    font-family: 'Playfair Display', serif;
+    color: #333;
+    max-width: 960px; /* Limita a largura para melhor leitura em telas grandes */
+    margin: 20px auto; /* Centraliza na página */
+    background-color: #fff; /* Fundo branco para destacar o conteúdo */
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sutil sombra para destacar */
+}
+
+.report-list {
+    margin-top: 20px;
+}
+
+.report-item {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+.report-item:last-child {
+    border-bottom: none;
+}
+
+.report-item h3 {
+    margin-top: 0;
+}
+
+.report-item p {
+    margin: 5px 0;
+}
+
+/* Estilos para o container do relatório (adicionado para alinhamento central) */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza o conteúdo horizontalmente */
+    background-color: #f9f9f9; /* Cor de fundo consistente com index.html */
+    padding: 10px;
+    margin: 0;
+}
