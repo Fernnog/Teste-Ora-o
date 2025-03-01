@@ -1026,10 +1026,10 @@ function addPrayButtonFunctionality(dailyDiv, targetIndex) {
     prayButton.classList.add("pray-button");
     prayButton.onclick = async () => {
         const targetId = dailyDiv.dataset.targetId;
-        const userId = auth.currentUser ? auth.currentUser.uid : null; // Obtém o ID do usuário
+        const userId = auth.currentUser ? auth.currentUser.uid : null;
 
         const db = getFirestore(app);
-        const clickCountsRef = doc(db, "prayerClickCounts", targetId); // Referência ao documento do alvo
+        const clickCountsRef = doc(db, "prayerClickCounts", targetId);
 
         try {
             const docSnap = await getDoc(clickCountsRef);
@@ -1038,21 +1038,22 @@ function addPrayButtonFunctionality(dailyDiv, targetIndex) {
             const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const year = now.getFullYear().toString();
 
-            // Dados a serem atualizados/criados, incluindo o userId
+            // CORREÇÃO AQUI: Usar chaves dinâmicas CORRETAMENTE:
             const updateData = {
                 targetId: targetId,
-                userId: userId, // Adiciona o userId
+                userId: userId,
                 totalClicks: increment(1),
-                [`monthlyClicks.${yearMonth}`]: increment(1),  // Atualiza o campo específico do mês
-                [`yearlyClicks.${year}`]: increment(1)  //Atualiza o campo específico do Ano
+                monthlyClicks: { [yearMonth]: increment(1) },  // <--- CORRIGIDO!
+                yearlyClicks: { [year]: increment(1) }        // <--- CORRIGIDO!
             };
 
 
             if (docSnap.exists()) {
-                // Atualizar documento existente
+                // Atualizar documento existente.  Usar updateDoc com um objeto
                 await updateDoc(clickCountsRef, updateData);
+
             } else {
-                // Criar novo documento com os dados iniciais
+                // Criar novo documento
                 await setDoc(clickCountsRef, updateData);
             }
 
@@ -1065,7 +1066,6 @@ function addPrayButtonFunctionality(dailyDiv, targetIndex) {
     };
     dailyDiv.insertBefore(prayButton, dailyDiv.firstChild);
 }
-
 
 function checkIfAllPrayersDone() {
     const dailyTargets = document.getElementById("dailyTargets");
@@ -1265,5 +1265,3 @@ function checkExpiredDeadlines() {
         alert('Os seguintes alvos estão com prazo de validade vencido:\n' + expiredTargets.map(target => `- ${target.title}\n`).join(''));
     }
 }
-
-
