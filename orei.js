@@ -1,162 +1,154 @@
-// ==== INÍCIO SEÇÃO - EVENT LISTENERS ====
-// Autenticação
-document.addEventListener('DOMContentLoaded', () => {
-    const btnRegister = document.getElementById('btnRegister');
-    const btnLogin = document.getElementById('btnLogin');
-    const btnLogout = document.getElementById('btnLogout');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const btnForgotPassword = document.getElementById('btnForgotPassword');
-    const passwordResetMessage = document.getElementById('passwordResetMessage');
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+import { getAnalytics } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+import { getFirestore, collection, doc, getDocs, query, where, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-    if (btnRegister) {
-        btnRegister.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            if (!email || !password) { alert("Preencha email e senha para registrar."); return; }
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                loadData(userCredential.user);
-            } catch (error) {
-                console.error("Erro no registro:", error);
-                alert("Erro no registro: " + error.message);
-            }
-        });
+// Importe firebaseConfig do seu script principal (script.js) ou defina aqui novamente
+const firebaseConfig = {
+    apiKey: "AIzaSyDUbWB7F_4-tQ8K799wylf36IayGWgBuMU",
+    authDomain: "diario-de-oracao-268d3.firebaseapp.com",
+    projectId: "diario-de-oracao-268d3",
+    storageBucket: "diario-de-oracao-268d3.firebasestorage.app",
+    messagingSenderId: "561592831701",
+    appId: "1:561592831701:web:2a682317486837fd795c5c",
+    measurementId: "G-15YHNK7H2B"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let prayerTargets = [];
+let archivedTargets = [];
+let clickCountsData = {};
+let currentUserId = null;
+let allTargets = []; // Para armazenar todos os alvos (ativos e arquivados)
+let filteredTargets = []; // Para alvos filtrados pela busca
+let currentSearchTermReport = '';
+
+
+async function loadReportData(userId) {
+    currentUserId = userId;
+    await fetchPrayerTargets(userId);
+    await fetchArchivedTargets(userId);
+    await fetchClickCounts(userId);
+    mergeTargetsAndClicks();
+    renderReport();
+}
+
+async function fetchPrayerTargets(userId) {
+    prayerTargets = [];
+    const targetsRef = collection(db, "users", userId, "prayerTargets");
+    const targetsSnapshot = await getDocs(targetsRef);
+    targetsSnapshot.forEach((doc) => {
+        prayerTargets.push({...doc.data(), id: doc.id, status: 'Ativo'}); // Adiciona status
+    });
+}
+
+async function fetchArchivedTargets(userId) {
+    archivedTargets = [];
+    const archivedRef = collection(db, "users", userId, "archivedTargets");
+    const archivedSnapshot = await getDocs(archivedRef);
+    archivedSnapshot.forEach((doc) => {
+        archivedTargets.push({...doc.data(), id: doc.id, status: doc.data().resolved ? 'Respondido' : 'Arquivado'}); // Adiciona status
+    });
+}
+
+
+async function fetchClickCounts(userId) {
+    clickCountsData = {};
+    const clickCountsRef = collection(db, "prayerClickCounts");
+    const q = query(clickCountsRef, where("userId", "==", userId));
+    const snapshot = await getDocs(q);
+    snapshot.forEach((doc) => {
+        clickCountsData[doc.data().targetId] = doc.data();
+    });
+}
+
+function mergeTargetsAndClicks() {
+    allTargets = [...prayerTargets, ...archivedTargets]; // Combina alvos ativos e arquivados
+    filteredTargets = allTargets; // Inicialmente, todos os alvos são exibidos
+}
+
+
+function renderReport() {
+    const reportList = document.getElementById('reportList');
+    reportList.innerHTML = ''; // Limpa a lista antes de renderizar
+
+    // Filtra os alvos com base no termo de pesquisa
+    const searchTerm = currentSearchTermReport.toLowerCase();
+    const targetsToDisplay = filteredTargets.filter(target => {
+        return target.title.toLowerCase().includes(searchTerm) || target.details.toLowerCase().includes(searchTerm);
+    });
+
+    if (targetsToDisplay.length === 0) {
+        reportList.innerHTML = '<p>Nenhum alvo encontrado.</p>';
+        return;
     }
 
-    if (btnLogin) {
-        btnLogin.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            if (!email || !password) { alert("Preencha email e senha para entrar."); return;}
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                loadData(userCredential.user);
-            } catch (error) {
-                console.error("Erro no login:", error);
-                alert("Erro no login: " + error.message);
-            }
-        });
-    }
 
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                loadData(null);
-            } catch (error) {
-                console.error("Erro ao sair:", error);
-            }
-        });
-    }
+    targetsToDisplay.forEach(target => {
+        const targetClickData = clickCountsData[target.id] || { totalClicks: 0 }; // Obtém dados de cliques ou usa 0 se não houver
+        const reportItemDiv = document.createElement('div');
+        reportItemDiv.classList.add('report-item');
+        reportItemDiv.innerHTML = `
+            <h3>${target.title}</h3>
+            <p><strong>Status:</strong> ${target.status}</p>
+            <p><strong>Total de Orações:</strong> ${targetClickData.totalClicks}</p>
+            <p><strong>Cliques Mensais:</strong> ${formatMonthlyClicks(targetClickData.monthlyClicks)}</p>
+            <p><strong>Cliques Anuais:</strong> ${formatYearlyClicks(targetClickData.yearlyClicks)}</p>
+        `;
+        reportList.appendChild(reportItemDiv);
+    });
+}
 
-    if (btnForgotPassword) {
-        btnForgotPassword.addEventListener('click', async () => {
-            const email = emailInput.value;
-            if (!email) { alert("Por favor, insira seu email para redefinir a senha."); return; }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                passwordResetMessage.textContent = "Email de redefinição enviado. Verifique sua caixa de entrada (e spam).";
-                passwordResetMessage.style.display = "block";
-                setTimeout(() => { passwordResetMessage.style.display = "none"; }, 5000);
-            } catch (error) {
-                console.error("Erro ao enviar email de redefinição:", error);
-                alert("Erro: " + error.message);
-                passwordResetMessage.textContent = "Erro ao enviar email. Tente novamente.";
-                passwordResetMessage.style.display = "block";
-            }
-        });
-    }
+function formatMonthlyClicks(monthlyClicks) {
+    if (!monthlyClicks) return 'N/A';
+    return Object.entries(monthlyClicks)
+                 .map(([monthYear, count]) => `${monthYear}: ${count}`)
+                 .join(', ');
+}
+
+function formatYearlyClicks(yearlyClicks) {
+     if (!yearlyClicks) return 'N/A';
+    return Object.entries(yearlyClicks)
+                 .map(([year, count]) => `${year}: ${count}`)
+                 .join(', ');
+}
+
+document.getElementById('searchReport').addEventListener('input', (event) => {
+    currentSearchTermReport = event.target.value;
+    renderReport();
 });
 
-//Navegação
+// ==== INÍCIO SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
+document.getElementById('backToMainButton').addEventListener('click', () => {
+    window.location.href = 'index.html'; // Volta para a página principal
+});
+
 document.getElementById('viewAllTargetsButton').addEventListener('click', () => {
-    mainPanel.style.display = "block";
-    dailySection.style.display = "none";  archivedPanel.style.display = "none";
-    resolvedPanel.style.display = "none"; viewArchivedButton.style.display = "inline-block";
-    viewResolvedButton.style.display = "inline-block"; backToMainButton.style.display = "inline-block";
-    showDeadlineOnly = false; document.getElementById("showDeadlineOnly").checked = false;
-    renderTargets();
+    window.location.href = 'index.html#mainPanel'; // Vai para a seção de alvos principais
 });
 
-const viewArchivedButton = document.getElementById("viewArchivedButton");
-const viewResolvedButton = document.getElementById("viewResolvedButton");
-const backToMainButton = document.getElementById("backToMainButton");
-const mainPanel = document.getElementById("mainPanel");
-const dailySection = document.getElementById("dailySection");
-const archivedPanel = document.getElementById("archivedPanel");
-const resolvedPanel = document.getElementById("resolvedPanel");
-
-viewArchivedButton.addEventListener("click", () => {
-    mainPanel.style.display = "none";  dailySection.style.display = "none";
-    archivedPanel.style.display = "block"; resolvedPanel.style.display = "none";
-    viewArchivedButton.style.display = "none"; viewResolvedButton.style.display = "inline-block";
-    backToMainButton.style.display = "inline-block"; currentArchivedPage = 1;
-    renderArchivedTargets();
+document.getElementById('viewArchivedButton').addEventListener('click', () => {
+    window.location.href = 'index.html#archivedPanel'; // Vai para a seção de arquivados
 });
 
-viewResolvedButton.addEventListener("click", () => {
-    mainPanel.style.display = "none"; dailySection.style.display = "none";
-    archivedPanel.style.display = "none"; resolvedPanel.style.display = "block";
-    viewArchivedButton.style.display = "inline-block"; viewResolvedButton.style.display = "none";
-    backToMainButton.style.display = "inline-block"; currentResolvedPage = 1;
-    renderResolvedTargets();
+document.getElementById('viewResolvedButton').addEventListener('click', () => {
+    window.location.href = 'index.html#resolvedPanel'; // Vai para a seção de resolvidos
 });
+// ==== FIM SEÇÃO - EVENT LISTENERS DE NAVEGAÇÃO (MENU) ====
 
-backToMainButton.addEventListener("click", () => {
-    mainPanel.style.display = "none"; dailySection.style.display = "block";
-    archivedPanel.style.display = "none"; resolvedPanel.style.display = "none";
-    viewArchivedButton.style.display = "inline-block"; viewResolvedButton.style.display = "inline-block";
-    backToMainButton.style.display = "none"; hideTargets();
-    currentPage = 1;
-});
 
-document.getElementById("copyDaily").addEventListener("click", function () {
-    const dailyTargetsElement = document.getElementById("dailyTargets");
-    if (!dailyTargetsElement) { alert("Não foi possível encontrar os alvos diários."); return; }
-    const dailyTargetsText = Array.from(dailyTargetsElement.children).map(div => {
-        const title = div.querySelector('h3')?.textContent || '';
-        const details = div.querySelector('p:nth-of-type(1)')?.textContent || '';
-        const timeElapsed = div.querySelector('p:nth-of-type(2)')?.textContent || '';
-        const observations = Array.from(div.querySelectorAll('p')).slice(2).map(p => p.textContent).join('\n');
-        let result = `${title}\n${details}\n${timeElapsed}`;
-        if (observations) result += `\nObservações:\n${observations}`;
-        return result;
-    }).join('\n\n---\n\n');
-    navigator.clipboard.writeText(dailyTargetsText).then(() => {
-        alert('Alvos diários copiados!');
-    }, (err) => { console.error('Erro ao copiar texto: ', err); alert('Não foi possível copiar.'); });
-});
-
-document.getElementById('generateViewButton').addEventListener('click', generateViewHTML);
-document.getElementById('viewDaily').addEventListener('click', generateDailyViewHTML);
-document.getElementById("viewResolvedViewButton").addEventListener("click", () => {
-    dateRangeModal.style.display = "block"; startDateInput.value = ''; endDateInput.value = '';
-});
-
-const dateRangeModal = document.getElementById("dateRangeModal");
-const closeDateRangeModalButton = document.getElementById("closeDateRangeModal");
-const generateResolvedViewButton = document.getElementById("generateResolvedView");
-const cancelDateRangeButton = document.getElementById("cancelDateRange");
-const startDateInput = document.getElementById("startDate");
-const endDateInput = document.getElementById("endDate");
-
-closeDateRangeModalButton.addEventListener("click", () => { dateRangeModal.style.display = "none"; });
-
-generateResolvedViewButton.addEventListener("click", () => {
-    const startDate = startDateInput.value;
-    const endDate = endDateInput.value;
-    const today = new Date();
-    const formattedToday = formatDateToISO(today);
-    const adjustedEndDate = endDate || formattedToday;
-    generateResolvedViewHTML(startDate, adjustedEndDate);
-    dateRangeModal.style.display = "none";
-});
-
-cancelDateRangeButton.addEventListener("click", () => { dateRangeModal.style.display = "none"; });
-
-// ==== BOTÃO "RELATÓRIO DE PERSEVERANÇA" - EVENT LISTENER ADICIONADO ====
-document.getElementById("viewReportButton").addEventListener('click', () => {
-    window.location.href = 'orei.html'; // Redireciona para a página de relatório
-});
-// ==== FIM SEÇÃO - EVENT LISTENERS ====
+window.onload = () => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loadReportData(user.uid);
+        } else {
+            alert("Usuário não autenticado. Redirecionando para a página principal.");
+            window.location.href = 'index.html';
+        }
+    });
+};
