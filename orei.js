@@ -26,13 +26,17 @@ let allTargets = [];
 let filteredTargets = [];
 let currentSearchTermReport = '';
 
+// Variáveis para paginação
+let currentPage = 1;
+const targetsPerPage = 10; // Defina quantos alvos por página
+
 async function loadReportData(userId) {
     currentUserId = userId;
     await fetchPrayerTargets(userId);
     await fetchArchivedTargets(userId);
     await fetchClickCounts(userId);
     mergeTargetsAndClicks();
-    renderReport();
+    renderReport(); // Renderiza a página inicial
 }
 
 async function fetchPrayerTargets(userId) {
@@ -85,12 +89,20 @@ function renderReport() {
         return textMatch && statusMatches;
     });
 
-    if (filteredTargets.length === 0) {
+
+    // Paginação: Calcular índices e fatiar o array
+    const startIndex = (currentPage - 1) * targetsPerPage;
+    const endIndex = startIndex + targetsPerPage;
+    const targetsToDisplay = filteredTargets.slice(startIndex, endIndex);
+
+
+    if (targetsToDisplay.length === 0) {
         reportList.innerHTML = '<p>Nenhum alvo encontrado.</p>';
+        renderPagination(); // Renderiza a paginação mesmo sem alvos (para mostrar "Página 1")
         return;
     }
 
-    filteredTargets.forEach(target => {
+    targetsToDisplay.forEach(target => {
         const targetClickData = clickCountsData[target.id] || { totalClicks: 0, monthlyClicks: {}, yearlyClicks: {} };
         const totalClicks = targetClickData.totalClicks || 0;
 
@@ -98,10 +110,8 @@ function renderReport() {
         const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const currentYear = now.getFullYear().toString();
 
-        // Acesso CORRETO e SEGURO aos dados mensais e anuais:
         const monthlyClicks = targetClickData.monthlyClicks?.[currentYearMonth] || 0;
         const yearlyClicks = targetClickData.yearlyClicks?.[currentYear] || 0;
-
 
         const reportItemDiv = document.createElement('div');
         reportItemDiv.classList.add('report-item');
@@ -114,16 +124,61 @@ function renderReport() {
         `;
         reportList.appendChild(reportItemDiv);
     });
+
+    renderPagination(); // Renderiza a paginação
 }
 
+
+// Função para renderizar a paginação
+function renderPagination() {
+    const paginationContainer = document.getElementById('pagination');
+    paginationContainer.innerHTML = ''; // Limpa a paginação anterior
+
+    const totalPages = Math.ceil(filteredTargets.length / targetsPerPage);
+
+    if (totalPages <= 1) {
+        return; // Não mostra paginação se tiver apenas uma página
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+        const pageLink = document.createElement('a');
+        pageLink.href = '#';
+        pageLink.textContent = i;
+        pageLink.classList.add('page-link');
+        if (i === currentPage) {
+            pageLink.classList.add('active'); // Adiciona classe para a página atual
+        }
+
+        pageLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            currentPage = i;
+            renderReport(); // Re-renderiza o relatório com a nova página
+        });
+
+        paginationContainer.appendChild(pageLink);
+    }
+}
+
+
+// Event listeners (mantidos e corrigidos)
 document.getElementById('searchReport').addEventListener('input', (event) => {
     currentSearchTermReport = event.target.value;
+     currentPage = 1; // Reseta para a primeira página ao pesquisar
     renderReport();
 });
 
-document.getElementById('filterAtivo').addEventListener('change', renderReport);
-document.getElementById('filterArquivado').addEventListener('change', renderReport);
-document.getElementById('filterRespondido').addEventListener('change', renderReport);
+document.getElementById('filterAtivo').addEventListener('change', () => {
+    currentPage = 1; // Reseta para a primeira página ao mudar filtros
+    renderReport();
+});
+document.getElementById('filterArquivado').addEventListener('change', () => {
+     currentPage = 1;// Reseta para a primeira página ao mudar filtros
+    renderReport();
+});
+document.getElementById('filterRespondido').addEventListener('change', () => {
+    currentPage = 1;// Reseta para a primeira página ao mudar filtros
+    renderReport();
+});
 
 document.getElementById('backToMainButton').addEventListener('click', () => {
     window.location.href = 'index.html';
